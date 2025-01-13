@@ -1,0 +1,9 @@
+analyzer:
+  network:
+    ip:
+      interface: "enp4s0"
+        # interface: "any"
+
+checker:
+  ipdb_path: "./build/ip-threat.db"
+  mmdb_path: "./build/GeoLite2-Country.mmdb"
