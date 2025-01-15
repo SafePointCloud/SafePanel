@@ -34,3 +34,7 @@ configs/*.local.yaml
 # Binary builds
 build/
 dist/
+
+# Database files
+ip-threat.db
+GeoLite2-Country.mmdb
