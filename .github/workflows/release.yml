@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Download GeoLite2 Database
+        run: |
+          curl -L "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb" -o GeoLite2-Country.mmdb
+
+      - name: Download IP Threat Database
+        run: |
+          LATEST_VERSION=$(curl -s https://api.github.com/repos/SafePointCloud/IP-Threat-DB/releases/latest | jq -r '.tag_name')
+          curl -L "https://github.com/SafePointCloud/IP-Threat-DB/releases/download/${LATEST_VERSION}/ip-threat.db" -o ip-threat.db
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
