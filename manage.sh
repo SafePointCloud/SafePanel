@@ -11,7 +11,11 @@ INSTALL_DIR="/usr/local/safepanel"
 CONFIG_DIR="/etc/safepanel"
 LOG_DIR="/var/log/safepanel"
 BINARY_NAME="safepaneld"
+SP_STATS_NAME="sp-stats"
+SP_BLOCKER_NAME="sp-blocker"
 BINARY_PATH="/usr/local/bin/${BINARY_NAME}"
+SP_STATS_PATH="/usr/local/bin/${SP_STATS_NAME}"
+SP_BLOCKER_PATH="/usr/local/bin/${SP_BLOCKER_NAME}"
 SERVICE_NAME="safepaneld"
 GITHUB_REPO="safepointcloud/safepanel"
 
@@ -31,6 +35,23 @@ create_directories() {
     mkdir -p "${LOG_DIR}"
 }
 
+# detect system architecture
+detect_arch() {
+    local arch=$(uname -m)
+    case $arch in
+        x86_64)
+            echo "x86_64"
+            ;;
+        aarch64)
+            echo "arm64"
+            ;;
+        *)
+            echo -e "${RED}Unsupported architecture: $arch${NC}"
+            exit 1
+            ;;
+    esac
+}
+
 # download latest version
 download_latest() {
     echo -e "${GREEN}Downloading latest version...${NC}"
@@ -41,13 +62,40 @@ download_latest() {
         exit 1
     fi
 
-    # download binary file
-    curl -L "https://github.com/${GITHUB_REPO}/releases/download/${latest_version}/safepaneld-linux-amd64" -o "${BINARY_PATH}"
-    chmod +x "${BINARY_PATH}"
+    # Detect architecture
+    ARCH=$(detect_arch)
+    echo -e "${GREEN}Detected architecture: $ARCH${NC}"
 
-    # download database files
-    curl -L "https://github.com/${GITHUB_REPO}/releases/download/${latest_version}/ip-threat.db" -o "${INSTALL_DIR}/ip-threat.db"
-    curl -L "https://github.com/${GITHUB_REPO}/releases/download/${latest_version}/GeoLite2-Country.mmdb" -o "${INSTALL_DIR}/GeoLite2-Country.mmdb"
+    # Create temporary directory for extraction
+    TMP_DIR=$(mktemp -d)
+
+    # Download and extract archive
+    echo -e "${GREEN}Downloading SafePanel_Linux_${ARCH}.tar.gz...${NC}"
+    if ! curl -L "https://github.com/${GITHUB_REPO}/releases/download/${latest_version}/SafePanel_Linux_${ARCH}.tar.gz" -o "${TMP_DIR}/safepanel.tar.gz"; then
+        echo -e "${RED}Download failed${NC}"
+        rm -rf "${TMP_DIR}"
+        exit 1
+    fi
+
+    # Extract files
+    if ! tar -xzf "${TMP_DIR}/safepanel.tar.gz" -C "${TMP_DIR}"; then
+        echo -e "${RED}Extraction failed${NC}"
+        rm -rf "${TMP_DIR}"
+        exit 1
+    fi
+
+    # Move binary and database files to their destinations
+    mv "${TMP_DIR}/safepaneld" "${BINARY_PATH}"
+    mv "${TMP_DIR}/sp-stats" "${SP_STATS_PATH}"
+    mv "${TMP_DIR}/sp-blocker" "${SP_BLOCKER_PATH}"
+    chmod +x "${BINARY_PATH}"
+    chmod +x "${SP_STATS_PATH}"
+    chmod +x "${SP_BLOCKER_PATH}"
+    mv "${TMP_DIR}/ip-threat.db" "${INSTALL_DIR}/ip-threat.db"
+    mv "${TMP_DIR}/GeoLite2-Country.mmdb" "${INSTALL_DIR}/GeoLite2-Country.mmdb"
+
+    # Cleanup
+    rm -rf "${TMP_DIR}"
 }
 
 # generate config file
@@ -77,7 +125,7 @@ generate_service() {
     echo -e "${GREEN}Generating systemd service file...${NC}"
     cat > "/etc/systemd/system/${SERVICE_NAME}.service" << EOF
 [Unit]
-Description=SafePanel Network Analyzer
+Description=SafePanel Daemon
 After=network.target
 
 [Service]

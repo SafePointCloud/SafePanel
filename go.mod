@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/gdamore/tcell/v2 v2.8.1
-	github.com/google/gopacket v1.1.19
+	github.com/gopacket/gopacket v1.3.1
 	github.com/oschwald/maxminddb-golang/v2 v2.0.0-beta.2
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/samber/lo v1.47.0
@@ -28,7 +28,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
-	golang.org/x/net v0.25.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

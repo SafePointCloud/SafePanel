@@ -32,7 +32,7 @@ type ipChecker struct {
 
 func NewIPChecker(ipdb *ipdb.IPDB, mmdb *mmdb.MMDB) IPChecker {
 	// Ensure the log directory exists
-	logDir := "logs"
+	logDir := "/var/log/safepanel"
 	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		fmt.Printf("Failed to create log directory: %v\n", err)
 	}

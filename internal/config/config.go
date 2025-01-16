@@ -59,8 +59,8 @@ func Init() error {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./configs")
-	viper.AddConfigPath("/etc/safepaneld")
-	viper.AddConfigPath("/usr/local/etc/safepaneld")
+	viper.AddConfigPath("/etc/safepanel")
+	viper.AddConfigPath("/usr/local/etc/safepanel")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return err

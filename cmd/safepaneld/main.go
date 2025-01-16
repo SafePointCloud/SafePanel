@@ -20,7 +20,15 @@ import (
 	"github.com/safepointcloud/safepanel/pkg/mmdb"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	log.Printf("SafePaneld %s (%s) built at %s", version, commit, date)
+
 	// Initialize config
 	if err := config.Init(); err != nil {
 		log.Fatalf("Failed to initialize config: %v", err)
