@@ -195,6 +195,7 @@ show_help() {
     echo
     echo "Available commands:"
     echo "  install     Install or update SafePanel"
+    echo "  upgrade     Upgrade SafePanel to the latest version"
     echo "  start       Start the service"
     echo "  stop        Stop the service"
     echo "  status      Check service status"
@@ -214,6 +215,13 @@ main() {
             generate_config
             generate_service
             start_service
+            ;;
+        "upgrade")
+            echo -e "${GREEN}Upgrading SafePanel...${NC}"
+            stop_service
+            download_latest
+            start_service
+            echo -e "${GREEN}Upgrade completed${NC}"
             ;;
         "start")
             start_service
