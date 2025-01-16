@@ -15,13 +15,15 @@ import (
 )
 
 type App struct {
-	client      *rpc.Client
-	app         *tview.Application
-	connections *tview.TextView
-	dns         *tview.TextView
-	ipStats     *tview.TextView
-	portStats   *tview.TextView
-	statusBar   *tview.TextView
+	client       *rpc.Client
+	app          *tview.Application
+	connections  *tview.TextView
+	dns          *tview.TextView
+	ipStats      *tview.TextView
+	portStats    *tview.TextView
+	statusBar    *tview.TextView
+	isPaused     bool
+	currentFocus int
 }
 
 func NewApp(client *rpc.Client) *App {
@@ -74,6 +76,20 @@ func (a *App) setupUI() {
 		AddItem(a.statusBar, 1, 1, false)
 
 	a.app.SetRoot(flex, true)
+
+	// Enable focus for all text views
+	a.connections.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		return event
+	})
+	a.dns.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		return event
+	})
+	a.ipStats.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		return event
+	})
+	a.portStats.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		return event
+	})
 }
 
 func (a *App) Run(ctx context.Context) error {
@@ -99,9 +115,11 @@ func (a *App) Run(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				a.update()
+				if !a.isPaused {
+					a.update()
+				}
 			case <-retryTicker.C:
-				if a.statusBar != nil && strings.Contains(a.statusBar.GetText(true), "[red]Error") {
+				if !a.isPaused && a.statusBar != nil && strings.Contains(a.statusBar.GetText(true), "[red]Error") {
 					a.update()
 				}
 			}
@@ -153,6 +171,11 @@ func (a *App) updateConnectionsView(connections []*models.NewConnectionStats) {
 	fmt.Fprintf(a.connections, "[yellow]%-12s %-25s %-25s[-]\n",
 		"Time", "Source", "Destination")
 
+	// sort by timestamp
+	sort.Slice(connections, func(i, j int) bool {
+		return connections[i].Timestamp.After(connections[j].Timestamp)
+	})
+
 	for _, conn := range connections {
 		fmt.Fprintf(a.connections, "%-12s %-25s %-25s\n",
 			conn.Timestamp.Format("15:04:05"),
@@ -166,6 +189,11 @@ func (a *App) updateDNSView(queries []*models.DNSQueryStats) {
 	fmt.Fprintf(a.dns, "[yellow]%-12s %-30s %-30s %-10s %-10s[-]\n",
 		"Time", "Domain", "Response", "Client", "DNS Server")
 
+	// sort by timestamp
+	sort.Slice(queries, func(i, j int) bool {
+		return queries[i].Timestamp.After(queries[j].Timestamp)
+	})
+
 	for _, query := range queries {
 		fmt.Fprintf(a.dns, "%-12s %-30s %-30s %-10s %-10s\n",
 			query.Timestamp.Format("15:04:05"),
@@ -178,16 +206,19 @@ func (a *App) updateDNSView(queries []*models.DNSQueryStats) {
 
 func (a *App) updateIPStatsView(stats []*models.ConnectionWindowStats) {
 	a.ipStats.Clear()
-	fmt.Fprintf(a.ipStats, "[yellow]%-30s %-15s %-15s[-]\n",
+	fmt.Fprintf(a.ipStats, "[yellow]%-35s %-15s %-15s[-]\n",
 		"SrcIP -> DstIP", "Unique Ports", "Conns")
 
 	// sort by connection count
 	sort.Slice(stats, func(i, j int) bool {
+		if stats[i].TotalConns == stats[j].TotalConns {
+			return len(stats[i].Ports) < len(stats[j].Ports)
+		}
 		return stats[i].TotalConns > stats[j].TotalConns
 	})
 
 	for _, stat := range stats {
-		fmt.Fprintf(a.ipStats, "%-30s %-15d %-15d\n",
+		fmt.Fprintf(a.ipStats, "%-35s %-15d %-15d\n",
 			stat.SrcIP+" -> "+stat.DstIP,
 			len(stat.Ports),
 			stat.TotalConns)
@@ -196,16 +227,19 @@ func (a *App) updateIPStatsView(stats []*models.ConnectionWindowStats) {
 
 func (a *App) updatePortStatsView(stats []*models.PortWindowStats) {
 	a.portStats.Clear()
-	fmt.Fprintf(a.portStats, "[yellow]%-25s %-15s %-15s[-]\n",
+	fmt.Fprintf(a.portStats, "[yellow]%-30s %-15s %-15s[-]\n",
 		"DstIP:Port", "Unique IPs", "Conns")
 
 	// sort by connection count
 	sort.Slice(stats, func(i, j int) bool {
+		if stats[i].TotalConns == stats[j].TotalConns {
+			return stats[i].DstIP < stats[j].DstIP
+		}
 		return stats[i].TotalConns > stats[j].TotalConns
 	})
 
 	for _, stat := range stats {
-		fmt.Fprintf(a.portStats, "%-25s %-15d %-15d\n",
+		fmt.Fprintf(a.portStats, "%-30s %-15d %-15d\n",
 			fmt.Sprintf("%s:%d", stat.DstIP, stat.DstPort),
 			len(stat.UniqueIPs),
 			stat.TotalConns)
@@ -228,20 +262,34 @@ func (a *App) setupKeyBindings() {
 			a.app.Stop()
 			return nil
 		case tcell.KeyCtrlR:
-			// use non-blocking way to trigger refresh
 			go func() {
 				a.app.QueueUpdateDraw(func() {
 					if a.statusBar != nil {
 						a.statusBar.SetText("[yellow]Refreshing...[white]")
 					}
 				})
-				// reuse existing update method
 				a.update()
 			}()
 			return nil
 		case tcell.KeyTab:
-			// TODO: implement focus switch logic
+			a.currentFocus = (a.currentFocus + 1) % 4 // Cycle through 4 views
+			switch a.currentFocus {
+			case 0:
+				a.app.SetFocus(a.connections)
+			case 1:
+				a.app.SetFocus(a.dns)
+			case 2:
+				a.app.SetFocus(a.ipStats)
+			case 3:
+				a.app.SetFocus(a.portStats)
+			}
 			return nil
+		case tcell.KeyRune:
+			if event.Rune() == ' ' {
+				a.isPaused = !a.isPaused
+				a.updateStatusBar()
+				return nil
+			}
 		}
 		return event
 	})
@@ -249,7 +297,22 @@ func (a *App) setupKeyBindings() {
 
 func (a *App) updateStatusBar() {
 	now := time.Now().Format("2006-01-02 15:04:05")
-	a.statusBar.SetText(fmt.Sprintf("[white]Last updated: %s | Press [yellow]ESC[white] to quit | [yellow]Ctrl+R[white] to refresh", now))
+	pauseStatus := ""
+	if a.isPaused {
+		pauseStatus = "[red](PAUSED) "
+	}
+	controls := []string{
+		"[yellow]ESC[white]: Quit",
+		"[yellow]Tab[white]: Switch View",
+		"[yellow]Ctrl+R[white]: Refresh",
+		"[yellow]Space[white]: Toggle Pause",
+	}
+	a.statusBar.SetText(fmt.Sprintf(
+		"[white]%sLast updated: %s | %s",
+		pauseStatus,
+		now,
+		strings.Join(controls, " | "),
+	))
 }
 
 func (a *App) Init() error {

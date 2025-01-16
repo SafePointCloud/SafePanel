@@ -120,6 +120,10 @@ func (a *App) updateInboundView(connections []*models.NewConnectionStats) {
 	fmt.Fprintf(a.inbound, "[yellow]%-12s %-25s %-25s[-]\n",
 		"Time", "Remote", "Local")
 
+	sort.Slice(connections, func(i, j int) bool {
+		return connections[i].Timestamp.After(connections[j].Timestamp)
+	})
+
 	for _, conn := range connections {
 		if conn.Direction != models.DirectionInbound {
 			continue
@@ -137,6 +141,10 @@ func (a *App) updateOutboundView(connections []*models.NewConnectionStats) {
 	fmt.Fprintf(a.outbound, "[yellow]%-12s %-25s %-25s[-]\n",
 		"Time", "Local", "Remote")
 
+	sort.Slice(connections, func(i, j int) bool {
+		return connections[i].Timestamp.After(connections[j].Timestamp)
+	})
+
 	for _, conn := range connections {
 		if conn.Direction != models.DirectionOutbound {
 			continue
@@ -152,7 +160,7 @@ func (a *App) updateOutboundView(connections []*models.NewConnectionStats) {
 func (a *App) updateBlacklistView() {
 	a.blacklist.Clear()
 	fmt.Fprintf(a.blacklist, "[yellow]%-20s %-30s %-20s %-40s %-10s[-]\n",
-		"Time", "IP Address", "Country", "Reason", "isBlocked")
+		"Time", "IP Address", "Country", "Reason", "IsBlocked")
 
 	// Get blacklist from client
 	stats, err := a.client.GetBlackStats()
@@ -182,10 +190,10 @@ func (a *App) updateStatusBar() {
 		pauseStatus = "[red](PAUSED) "
 	}
 	controls := []string{
-		"ESC: Quit",
-		"Tab: Switch View",
-		"Ctrl+R: Refresh",
-		"Space: Toggle Pause",
+		"[yellow]ESC[white]: Quit",
+		"[yellow]Tab[white]: Switch View",
+		"[yellow]Ctrl+R[white]: Refresh",
+		"[yellow]Space[white]: Toggle Pause",
 	}
 	a.statusBar.SetText(fmt.Sprintf(
 		"[white]%sLast updated: %s | %s",
