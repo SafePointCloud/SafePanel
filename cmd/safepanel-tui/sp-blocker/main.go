@@ -8,7 +8,15 @@ import (
 	"github.com/safepointcloud/safepanel/internal/tui/blocker"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	log.Printf("SafePanel Blocker %s (%s) built at %s", version, commit, date)
+
 	client, err := rpc.NewClient("/var/run/safepanel.sock")
 	if err != nil {
 		log.Fatalf("Failed to connect to safepanel daemon: %v", err)
