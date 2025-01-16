@@ -178,6 +178,8 @@ uninstall() {
     echo -e "${YELLOW}Starting uninstall...${NC}"
     stop_service
     rm -f "${BINARY_PATH}"
+    rm -f "${SP_STATS_PATH}"
+    rm -f "${SP_BLOCKER_PATH}"
     rm -rf "${INSTALL_DIR}"
     rm -rf "${CONFIG_DIR}"
     rm -rf "${LOG_DIR}"
