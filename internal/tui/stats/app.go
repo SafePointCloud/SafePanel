@@ -186,7 +186,7 @@ func (a *App) updateConnectionsView(connections []*models.NewConnectionStats) {
 
 func (a *App) updateDNSView(queries []*models.DNSQueryStats) {
 	a.dns.Clear()
-	fmt.Fprintf(a.dns, "[yellow]%-12s %-30s %-30s %-10s %-10s[-]\n",
+	fmt.Fprintf(a.dns, "[yellow]%-12s %-30s %-30s %-15s %-15s[-]\n",
 		"Time", "Domain", "Response", "Client", "DNS Server")
 
 	// sort by timestamp
@@ -195,7 +195,7 @@ func (a *App) updateDNSView(queries []*models.DNSQueryStats) {
 	})
 
 	for _, query := range queries {
-		fmt.Fprintf(a.dns, "%-12s %-30s %-30s %-10s %-10s\n",
+		fmt.Fprintf(a.dns, "%-12s %-30s %-30s %-15s %-15s\n",
 			query.Timestamp.Format("15:04:05"),
 			truncateString(query.Domain, 28),
 			truncateString(strings.Join(query.Response, ","), 28),

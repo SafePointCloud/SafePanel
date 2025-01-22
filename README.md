@@ -39,6 +39,7 @@ sudo ./manage.sh stop      # Stop the service
 sudo ./manage.sh status    # Check service status
 sudo ./manage.sh logs      # View service logs
 sudo ./manage.sh uninstall # Uninstall SafePanel
+sudo ./manage.sh upgrade   # Update SafePanel
 ```
 
 ### Using TUI

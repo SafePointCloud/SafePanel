@@ -57,7 +57,7 @@ func (a *App) setupUI() {
 		SetDynamicColors(true).
 		SetRegions(true).
 		SetScrollable(true)
-	a.blacklist.SetTitle(" Black IPs ").SetBorder(true)
+	a.blacklist.SetTitle(" Black IP Hit Log ").SetBorder(true)
 
 	a.statusBar = tview.NewTextView().
 		SetDynamicColors(true)
